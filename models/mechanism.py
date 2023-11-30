@@ -19,7 +19,7 @@ class Mechanism(Base):
     def params(self):
         """Return params as a dict."""
         return json.loads(self._params)
- 
+
     @params.setter
     def params(self, d):
         """Set params as a string representation of dict."""

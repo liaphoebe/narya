@@ -1,4 +1,5 @@
 from viewer import Viewer
+from logger import Logger
 
 class Application:
     _instance = None
@@ -11,6 +12,7 @@ class Application:
 
     def __init__(self, project_dir):
         self.viewer = Viewer(project_dir)
+        self.logger = Logger('output.txt')
 
     @classmethod
     def create_application(cls, project_dir):

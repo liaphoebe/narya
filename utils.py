@@ -32,3 +32,44 @@ def get_value(dictionary, string):
     # in case no match is found
     return None
 
+import xml.etree.ElementTree as ET
+import json
+
+def xml_to_dict(xml_str):
+    try:
+        root = ET.fromstring(xml_str)
+        return {root.tag: xml_to_dict_recur(root)}
+    except Exception as e:
+        print(e)
+
+def xml_to_dict_recur(element):
+    if len(element) == 0:
+        return element.text
+    else:
+        result = {}
+        for child in element:
+            child_dict = xml_to_dict_recur(child)
+            if child.tag in result:
+                if isinstance(result[child.tag], list):
+                    result[child.tag].append(child_dict)
+                else:
+                    result[child.tag] = [result[child.tag], child_dict]
+            else:
+                result[child.tag] = child_dict
+        return result
+
+import difflib
+
+def json_similarity(json1, json2):
+    # Convert JSON objects to strings
+    str1 = json.dumps(json1, sort_keys=True)
+    str2 = json.dumps(json2, sort_keys=True)
+    
+    # Create a SequenceMatcher object to compare the strings
+    s = difflib.SequenceMatcher(None, str1, str2)
+   
+    # Get the similarity ratio between the two strings
+    similarity_score = s.ratio()
+    
+    return similarity_score
+

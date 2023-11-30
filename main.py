@@ -21,6 +21,7 @@ def main():
                         help="Copy report to clipboard.")
     parser.add_argument("-s", nargs=2, help="Specify goal for a particular file.")
     parser.add_argument("-t", action="store_true", help="Perform the test.")
+    parser.add_argument("-p", action="store_true", help="Ping GPT.")
     args = parser.parse_args()
 
     # Database setup
@@ -28,26 +29,20 @@ def main():
 
     # Create application instance
     app = Application.create_application(PROJECT_DIR)
- 
+
     if args.s:
         filename, goal_string = args.s
         with open(filename, 'r') as file:
             direction = file.read()
         Specification.insert(session, None, goal_string, direction, 0, 0)
         print('Specification inserted successfully.')
- 
+
     if args.sa:
         from models.mechanism import Mechanism
 
-        #dir_dump = app.viewer.dir_dump()
-    
-        # We slice './' off of every key here.
-        #whitelist = {file_path[2:]: True for file_path in dir_dump.split('\n') if file_path != ''}
-    
-        #report = app.viewer.generate_report(whitelist)
         interactor = Interactor()
         func_summaries = interactor.summarize_functions()
-    
+
         # update the summaries to the corresponding mechanisms in the database
         for func_name, func_summary in func_summaries.items():
             class_name, name = func_name.split("#")
@@ -57,7 +52,7 @@ def main():
         session.commit()
 
         print('Done.')
-      
+    
     if args.c:
         app.viewer.copy_report_to_clipboard()
 
@@ -66,6 +61,10 @@ def main():
 
         tester = Tester()
         tester.perform()
+
+    if args.p:
+        print(Interactor.ping())
+        
 
     return app
 
