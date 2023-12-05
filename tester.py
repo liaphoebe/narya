@@ -28,11 +28,17 @@ class Tester:
         result = subprocess.run(TEST_CMD.split(), capture_output=True, text=True)
         p()
 
+        breakpoint()
+
         if result.stderr != '':
             debugger = Debugger(result.stderr)
             report = debugger.run()
 
+            breakpoint()
+
             self.mgr.edit_file(report['filename'], report['line'], report['debug_mode'])
+
+            breakpoint()
 
 
     def old_perform(self):

@@ -1,13 +1,16 @@
 import git
 import uuid
 from models.branch import Branch
-from composers import Composer
+from composer import Composer
+from sqlalchemy import desc
+from main import session
 
 class BranchManager:
 
     def __init__(self, repo_path=".", run=True, disposable=True):
         self.repo = git.Repo(repo_path)
         self.branch = self.get_or_create_open_branch()
+        self.disposable = disposable
 
         self.composers = {}
 
@@ -28,17 +31,19 @@ class BranchManager:
         if self.disposable:
             # Revert to main branch, deleting this one and all changes made
             self.repo.git.checkout('main')  # Assuming the main branch is named 'main'
-            self.repo.git.branch('-D', self.branch.name)  # Delete the branch
-    
+            self.repo.git.branch('-D', self.branch.name)  # Delete the branch 
         else:
             # Commit this branch, merging it into main
             self.repo.git.checkout('main')  # Switch to the main branch
             self.repo.git.merge(self.branch.name)  # Merge the branch into main
             self.repo.git.branch('-D', self.branch.name)  # Delete the branch
 
+        self.branch.status = 'closed'
+        session.commit()
+
     def get_or_create_open_branch(self):
         # Find the newest 'open' branch
-        newest_open_branch = Branch.query.filter_by(status='open').order_by(desc(Branch.id)).first()
+        newest_open_branch = session.query(Branch).filter_by(status='open').order_by(desc(Branch.id)).first()
 
         if newest_open_branch:
             return newest_open_branch
@@ -47,6 +52,10 @@ class BranchManager:
         unique_id = uuid.uuid4().hex[:8]
         new_branch_name = f"feature-branch-{unique_id}"
         new_branch = Branch(name=new_branch_name, status='open')
+
+        session.add(new_branch)
+        session.commit()
+
         return new_branch
 
     def checkout_branch(self):
