@@ -73,3 +73,10 @@ def json_similarity(json1, json2):
     
     return similarity_score
 
+def drilldown(obj, key, until=list):
+    out = obj[key]
+    while True:
+        if type(out) != until:
+            _, out = out.popitem()
+        else:
+            return out

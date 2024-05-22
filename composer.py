@@ -14,6 +14,7 @@ class Composer:
 
     def modify(self, existing_code, replacement_code):
         for i in range(len(self.lines) - len(existing_code) + 1):
+            breakpoint()
             if [line['code'] for line in self.lines[i:i+len(existing_code)]] == existing_code:
                 del self.lines[i:i+len(existing_code)]
                 for j, _code in enumerate(replacement_code):

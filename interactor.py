@@ -41,9 +41,9 @@ What would json_object look like if it were XML of this format?:
 
 # Debugger
 'debugger': '''
-{tracecback}
+{traceback}
 
-Fill in the blanks of this JSON, regarding the failing line: 
+Fill in the blanks of this JSON, regarding the failing line:
 {{
 "line": ... # hint: write the failing line of code,
 "filename": ... # hint: write the file where the failing line is,
@@ -52,8 +52,92 @@ Fill in the blanks of this JSON, regarding the failing line:
 "ops": [ ..., ...] # hint: what operations are performed on this line?,
 "irrelevant_values": {prevs} # DO NOT MODIFY,
 "most_relevant_value": ... # hint: what variable, function output, or operation is most relevant to the failure? ,
-"debug_mode": [ '# [DEBUG_MODE]', ..., ..., <failing_line>] # hint: Instead of the line as it is, how would it look to rewrite the line in multiple lines, 
-                                                  including a print statement that would show us the most_relevant_value before the error is thrown?
+"python_code": [ ... ] # hint: This field is an array of strings that represent Python code. 
+                                                                         Instead of the line as it is, how would it look to rewrite the line in multiple lines, 
+                                                                         including a print statement that would show us the most_relevant_value before the error is thrown? 
+}}
+
+''',
+
+# Storyteller
+'storyteller': '''
+{code_report}
+~~~
+let context = {relevant_information} 
+~~~
+let theme = {theme}
+
+Imagine you are a project manager in charge of explaining to a developer what they should be doing. In order to do this, you need to set the stage and, in a literal sense, tell a story.
+  Do this by filling in the blanks of this JSON:
+{{
+"request_type": ... # hint: Based on the theme and provided context and code, what is being asked for? Say "feature" or "error",
+"story": ... # hint: tell a story centering around the theme! Let it come to life in terms of the context and code provided. For example: start to finish, how does the execution of the visible code pertain to the theme?,
+"mission": ... # hint: based on your story and the request type, imagine directing a developer to in some way change the codebase. What would you say? Be specific. Referring to specific lines of code is best. 
+}}
+''',
+
+# Developer
+'developer': '''
+{code_report}
+let story = {story}
+let direction = {direction}
+
+Imagine you are a developer working in a mid-sized company. Your manager just came to you with a new user story and, generally, a description of how they want you to modify the codebase. 
+  Do this by filling in the blanks of this JSON:
+{{
+"explainer": ... # hint: what does your manager specifically want you to do? Be as explicit as possible,
+"files_to_change": [ ..., ..., ...] # hint: this is a list of filenames. Which files in the codebase should you touch, according to what your manager wants?,
+"changes": [ {...}, {...}, ... ] # hint: this is a list of objects. It has one element per file to change. Each object looks like this: { file: path/to/file.py, existing_lines: [ ..., ..., ...], replacement_lines: [ ..., ..., ...] }
+}}
+''',
+
+# The Coding Pair
+'coding_pair': '''
+<julia_report>
+{code_report}
+let traceback = {traceback}
+let output = {stdout}
+</julia_report>
+
+Let's roleplay. I am Julia, and you will play a pair of coders Jeffersnatch and Kevhole.
+
+Jeffersnatch is data-focused and pays special attention to the flow of information through an application.
+
+Kevhole is organization-focused and pays special attention to the relationship between different components of
+the application.
+
+The two often disagree, but they are both focused on the endgame: solving the problem.
+
+Fill in the blanks of this JSON, regarding their conversation:
+{{
+"intro": {{
+"author": "Jeffersnatch",
+"comment": "Based on Julia's report, I think we should make the following changes to the codebase:",
+"changes": [
+    # One of these per file to change
+    {{
+    "filename": _,
+    "original_code": [ _, _], # One array element per line of code. Include indentation levels if applicable.
+    "changed_code": [ _, _],
+    }},
+    ...
+]
+}},
+"rebuttal": {{
+"author": "Kevhole",
+"comment": "Well Jeff, I think your approach may struggle because _. What if you were to _ instead?"
+}},
+"revision": {{
+"author": "Jeffersnatch",
+"comment": "Kev you sonofabitch, we don't always see eye to eye but this is what I think of your critique: _.
+                Taking it and my own approach into account, I think we should make the following changes to the codebase instead:",
+"changes": _ # Same format as intro.changes
+}}
+"endgame": {{
+"author": "Kevhole",
+"comment": "Jeff, I think I have a much better direction in mind. I want to make sure we _, so let's try doing things this way:"
+"changes": _ # Same format as intro.changes and revision.changes
+}}
 }}
 ''',
 
@@ -225,8 +309,47 @@ class Debugger(Interactor):
         self.cache = { 'debug_prevs': [] }
 
     def run(self):
-        report = self.gpt( 'debugger', { 'traceback': self.traceback, 'prevs': self.cache['debug_prevs'] }, resume_override=False )
+        report = self.gpt( 'debugger', { 'traceback': self.traceback, 'prevs': self.cache['debug_prevs'] }, resume_override=False)
 
         self.cache['debug_prevs'].append(report['most_relevant_value'])
+
+        return report
+
+class Storyteller(Interactor):
+
+    def __init__(self, code_report, context, theme):
+        self.code_report = code_report
+        self.context = context
+        self.theme = theme
+
+    def run(self):
+        report = self.gpt( 'storyteller', { 'code_report': self.code_report, 'relevant_information': self.context, 'theme': self.theme } )
+
+        return report
+
+class Developer(Interactor):
+
+    def __init__(self, code_report, direction, story):
+        self.code_report = code_report
+        self.direction = direction
+        self.story = story
+
+    def run(self):
+        report = self.gpt( 'developer', { 'code_report': self.code_report, 'direction': self.direction, 'story': self.story } )
+
+        return report
+
+class CodingPair(Interactor):
+
+    def __init__(self, code_report, traceback, stdout):
+        super().__init__()
+        self.code_report = code_report
+        self.traceback   = traceback
+        self.stdout      = stdout
+
+    def run(self):
+        report = self.gpt( 'coding_pair', { 'code_report': self.code_report, 'traceback': self.traceback, 'stdout': self.stdout }, resume_override=False)
+
+        breakpoint()
 
         return report

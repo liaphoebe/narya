@@ -1,11 +1,12 @@
 import subprocess
 import re
 import os
-from interactor import Interactor, Debugger
+from interactor import Interactor, Debugger, CodingPair, Storyteller
 from conf import TEST_CMD
 from main import app_instance
 from composer import Composer
 from branch_manager import BranchManager
+from utils import drilldown
 
 class Tester:
 
@@ -19,7 +20,7 @@ class Tester:
         self.mgr = BranchManager()
 
     # 1. Run test; 2. Generate debug report; 3. Modify code based on report; 4. Goto #1
-    def perform(self):
+    def perform(self, used_values=[]):
 
         def p():
             print('.', end='')
@@ -33,12 +34,35 @@ class Tester:
         if result.stderr != '':
             debugger = Debugger(result.stderr)
             report = debugger.run()
+            p()
 
             breakpoint()
 
-            self.mgr.edit_file(report['filename'], report['line'], report['debug_mode'])
+            used_values.append(report['most_relevant_value'])
+
+            self.mgr.edit_file(report['filename'], report['line'], drilldown(report, 'python_code') )
+            p()
 
             breakpoint()
+
+            rerun = subprocess.run(TEST_CMD.split(), capture_output=True, text=True)
+            p()
+
+            storyteller = Storyteller( app_instance.viewer.fs_dump( whitelist= self.parse_stacktrace(result.stderr) ), result.stdout, result.stderr )
+            storyteller.run()
+            p()
+
+            breakpoint()
+
+            for revision in meeting['endgame']['changes']:
+                self.mgr.edit_file(revision['filename'], revision['original_code'], revision['changed_code'])
+            p()
+
+            breakpoint()
+
+            self.perform(used_values= used_values)
+
+        print('I guess we are here now...')
 
 
     def old_perform(self):
